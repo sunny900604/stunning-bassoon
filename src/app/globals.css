@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+:root {
+  --color-cream: #fdfaf8;
+  --color-peach-50: #fbeee6;
+  --color-peach-100: #f6ded2;
+  --color-peach-200: #f1d3d2;
+  --color-peach-300: #f4c9a0;
+  --color-peach-400: #f1b393;
+  --color-peach-500: #eda671;
+  --color-accent: #e8935c;
+  --color-ink: #1a1a1a;
+  --color-ink-soft: #333333;
+  --color-gray: #8c8c8c;
+  --color-gray-light: #b9b9b9;
+  --color-bar-black: #141414;
+  --font-sans: var(--font-noto-sans-kr), "Malgun Gothic", sans-serif;
+  --font-display: var(--font-archivo-black), var(--font-noto-sans-kr), sans-serif;
+}
+
+@theme inline {
+  --color-cream: var(--color-cream);
+  --color-peach-50: var(--color-peach-50);
+  --color-peach-100: var(--color-peach-100);
+  --color-peach-200: var(--color-peach-200);
+  --color-peach-300: var(--color-peach-300);
+  --color-peach-400: var(--color-peach-400);
+  --color-peach-500: var(--color-peach-500);
+  --color-accent: var(--color-accent);
+  --color-ink: var(--color-ink);
+  --color-ink-soft: var(--color-ink-soft);
+  --color-gray: var(--color-gray);
+  --color-gray-light: var(--color-gray-light);
+  --color-bar-black: var(--color-bar-black);
+  --font-sans: var(--font-sans);
+  --font-display: var(--font-display);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: #ffffff;
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+@keyframes bounce-down {
+  0%, 100% { transform: translateY(0); opacity: 1; }
+  50% { transform: translateY(8px); opacity: 0.4; }
+}
+
+.animate-bounce-down {
+  animation: bounce-down 1.6s ease-in-out infinite;
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-up {
+  animation: fade-up 0.7s ease-out both;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
