@@ -4,10 +4,14 @@ import { useState, useRef, useEffect } from 'react';
 import type { Employee, ChatMessage } from '@/types';
 
 const colorMap: Record<string, { bg: string; bubble: string; icon: string }> = {
-  blue: { bg: 'bg-blue-50', bubble: 'bg-blue-600', icon: 'bg-blue-100' },
-  green: { bg: 'bg-green-50', bubble: 'bg-green-600', icon: 'bg-green-100' },
+  blue:   { bg: 'bg-blue-50',   bubble: 'bg-blue-600',   icon: 'bg-blue-100' },
+  green:  { bg: 'bg-green-50',  bubble: 'bg-green-600',  icon: 'bg-green-100' },
   purple: { bg: 'bg-purple-50', bubble: 'bg-purple-600', icon: 'bg-purple-100' },
   orange: { bg: 'bg-orange-50', bubble: 'bg-orange-600', icon: 'bg-orange-100' },
+  pink:   { bg: 'bg-pink-50',   bubble: 'bg-pink-600',   icon: 'bg-pink-100' },
+  teal:   { bg: 'bg-teal-50',   bubble: 'bg-teal-600',   icon: 'bg-teal-100' },
+  red:    { bg: 'bg-red-50',    bubble: 'bg-red-600',    icon: 'bg-red-100' },
+  indigo: { bg: 'bg-indigo-50', bubble: 'bg-indigo-600', icon: 'bg-indigo-100' },
 };
 
 const QUICK_PROMPTS: Record<string, string[]> = {
@@ -15,6 +19,10 @@ const QUICK_PROMPTS: Record<string, string[]> = {
   'donation-manager': ['현재 대기 중인 기증 신청 현황을 알려주세요', '픽업 일정을 잡고 싶어요', '기증 영수증 내용을 작성해주세요'],
   'data-analyst': ['이번 달 기증 현황을 분석해주세요', '주요 기증 기업을 요약해주세요', '월별 트렌드 리포트를 작성해주세요'],
   'marketing': ['기업 기증 유치 이메일을 작성해주세요', '인스타그램 홍보 문안을 만들어주세요', '기업 제안서 초안을 작성해주세요'],
+  'instagram': ['굿팝업 파트너 브랜드 카드뉴스 6슬라이드 기획해주세요', '인스타 캡션을 작성해주세요', '이번 주 콘텐츠 캘린더를 만들어주세요'],
+  'goodpopup': ['굿팝업 파트너 브랜드 제안서를 작성해주세요', '신규 브랜드 유치 이메일 문안 작성해주세요', '굿팝업 프로그램 소개 기획서를 만들어주세요'],
+  'sales': ['이번 달 판매 촉진 전략을 세워주세요', '프로모션 기획서를 작성해주세요', '영업팀 스크립트를 만들어주세요'],
+  'design': ['카드뉴스 디자인 브리프를 작성해주세요', '외주 디자이너 요청서를 만들어주세요', '굿팝업 비주얼 방향성을 제안해주세요'],
 };
 
 export default function ChatInterface({ employee }: { employee: Employee }) {

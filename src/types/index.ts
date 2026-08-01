@@ -24,7 +24,15 @@ export type ChatMessage = {
   content: string;
 };
 
-export type EmployeeRole = 'customer-support' | 'donation-manager' | 'data-analyst' | 'marketing';
+export type EmployeeRole =
+  | 'customer-support'
+  | 'donation-manager'
+  | 'data-analyst'
+  | 'marketing'
+  | 'instagram'
+  | 'goodpopup'
+  | 'sales'
+  | 'design';
 
 export type Employee = {
   id: EmployeeRole;
