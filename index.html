@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>굿팝업 운영 프로그램</title>
+<script src="vendor/xlsx.full.min.js"></script>
 <style>
   :root{
     --blue:#1B5CB8; --blue-2:#164A94; --blue-light:#EAF1FB; --blue-pale:#F5F8FD;
@@ -157,7 +158,12 @@
 <div class="layout">
   <div class="sidebar">
     <div class="logo">🔵 굿팝업</div>
-    <div class="logo-sub">운영 프로그램 v1.1</div>
+    <div class="logo-sub">운영 프로그램 v1.2</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin:0 8px 14px">
+      <button class="btn-s" style="width:100%" onclick="exportExcel()">📥 엑셀로 내보내기</button>
+      <button class="btn-s" style="width:100%" onclick="document.getElementById('importFile').click()">📤 엑셀 불러오기</button>
+      <input type="file" id="importFile" accept=".xlsx" style="display:none" onchange="importExcel(event)">
+    </div>
     <div id="nav">
       <div class="nav-item active" data-p="dash">🏠 종합 대시보드</div>
       <div class="nav-item" data-p="report">📑 결과보고서</div>
@@ -1220,6 +1226,119 @@ async function delRec(){
   if(editType==="set") D.settlements = D.settlements.filter(x=>x.id!==editId);
   if(editType==="promo") D.promos = D.promos.filter(x=>x.id!==editId);
   await save(); closeM(); render();
+}
+
+/* ================= 엑셀 내보내기 / 불러오기 ================= */
+function exportExcel(){
+  const wb = XLSX.utils.book_new();
+
+  const coRows = D.companies.map(c=>({
+    기업ID:c.id, 기업명:c.name, 차수:c.cha, 상태:c.status, 접수일:c.date, 품목분류:c.cat,
+    물품상태:c.cond, 담당자:c.mgr, 이메일:c.email, 홈페이지:c.url,
+    예상제공수량:c.expected, 확정기증수량:c.fixed, 정가:c.listPrice, 행사가:c.salePrice,
+    "원가(개당)":c.cost||0, 비고:c.note
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(coRows), "기업정보");
+
+  const alRows = D.allocs.map(a=>({
+    배분ID:a.id, 차수:a.cha, 기업명:a.co, 지점:a.br, 품목분류:a.cat, 제품명:a.prod,
+    배분수량:a.qty, 판매수량:a.sold, 배분상태:a.stat, 비고:a.note
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(alRows), "배분관리");
+
+  const stRows = D.settlements.map(s=>({
+    결산ID:s.id, 기업명:s.co, 지점:s.br, 시작일:s.d1, 종료일:s.d2, 방문객:s.vis, 비고:s.note
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(stRows), "행사결산");
+
+  const prRows = D.promos.map(p=>({
+    성과ID:p.id, 기업명:p.co, 지점:p.br, 채널:p.ch, "도달/발송":p.reach, 조회수:p.views,
+    좋아요:p.likes, 저장:p.saves, QR스캔:p.qr, 비고:p.note
+  }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(prRows), "홍보성과");
+
+  const ckRows = D.checks.map(ck=>{
+    const o = {기업명:ck.co};
+    STEPS.forEach((s,i)=>{ o[s] = ck.steps[i]?"O":""; });
+    const done = ck.steps.reduce((a,b)=>a+b,0);
+    o["완료수"] = done; o["진행률"] = Math.round(done/8*100)+"%";
+    return o;
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(ckRows), "온보딩체크");
+
+  const impRows = D.companies.map(c=>{
+    const i = impactByCo(c);
+    return { 기업명:c.name, 판매수량:soldByCo(c.name), 적용단가:unitPrice(c),
+      캠페인매출:Math.round(i.revenue), 순수익:Math.round(i.profit), "지원인원(월환산)":Number(i.months.toFixed(2)),
+      "원가(개당)":c.cost||0, 확정기증수량:c.fixed, 기부금영수증발급액:Math.round(donationByCo(c)) };
+  });
+  const tot = totalImpact();
+  impRows.push({ 기업명:"합계", 판매수량:sum(D.allocs,a=>a.sold), 적용단가:"",
+    캠페인매출:Math.round(tot.revenue), 순수익:Math.round(tot.profit),
+    "지원인원(월환산)":Number(tot.months.toFixed(2)), "원가(개당)":"",
+    확정기증수량:sum(D.companies,c=>c.fixed), 기부금영수증발급액:Math.round(totalDonation()) });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(impRows), "임팩트결산");
+
+  const brRows = BRANCHES.map(b=>({ 지점ID:b.id, 지점명:b.name, 정식명칭:b.full, 주소:b.addr, 운영시간:b.hours, 비고:b.memo }));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(brRows), "지점마스터");
+
+  const today = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `굿팝업_운영데이터_${today}.xlsx`);
+}
+
+function importExcel(event){
+  const file = event.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try{
+      const wb = XLSX.read(e.target.result, {type:"array"});
+      const sheet = name => wb.Sheets[name] ? XLSX.utils.sheet_to_json(wb.Sheets[name]) : null;
+
+      const co = sheet("기업정보");
+      if(co && co.length) D.companies = co.map(r=>({
+        id:r["기업ID"]||"", name:r["기업명"]||"", cha:r["차수"]||"", status:r["상태"]||"",
+        date:r["접수일"]||"", cat:r["품목분류"]||"", cond:r["물품상태"]||"", mgr:r["담당자"]||"",
+        email:r["이메일"]||"", url:r["홈페이지"]||"",
+        expected:Number(r["예상제공수량"])||0, fixed:Number(r["확정기증수량"])||0,
+        listPrice:Number(r["정가"])||0, salePrice:Number(r["행사가"])||0,
+        cost:Number(r["원가(개당)"])||0, note:r["비고"]||""
+      }));
+
+      const al = sheet("배분관리");
+      if(al && al.length) D.allocs = al.map(r=>({
+        id:r["배분ID"]||newId("A",[]), cha:r["차수"]||"", co:r["기업명"]||"", br:r["지점"]||"",
+        cat:r["품목분류"]||"", prod:r["제품명"]||"", qty:Number(r["배분수량"])||0,
+        sold:Number(r["판매수량"])||0, stat:r["배분상태"]||"확정", note:r["비고"]||""
+      }));
+
+      const st = sheet("행사결산");
+      if(st && st.length) D.settlements = st.map(r=>({
+        id:r["결산ID"]||newId("S",[]), co:r["기업명"]||"", br:r["지점"]||"",
+        d1:r["시작일"]||"", d2:r["종료일"]||"", vis:Number(r["방문객"])||0, note:r["비고"]||""
+      }));
+
+      const pr = sheet("홍보성과");
+      if(pr && pr.length) D.promos = pr.map(r=>({
+        id:r["성과ID"]||newId("P",[]), co:r["기업명"]||"", br:r["지점"]||"", ch:r["채널"]||"",
+        reach:Number(r["도달/발송"])||0, views:Number(r["조회수"])||0, likes:Number(r["좋아요"])||0,
+        saves:Number(r["저장"])||0, qr:Number(r["QR스캔"])||0, note:r["비고"]||""
+      }));
+
+      const ck = sheet("온보딩체크");
+      if(ck && ck.length) D.checks = ck.map(r=>({
+        co:r["기업명"]||"", steps: STEPS.map(s=>r[s]==="O"?1:0)
+      }));
+
+      await save(); render();
+      alert("엑셀 데이터를 불러왔습니다.");
+    }catch(err){
+      console.error(err);
+      alert("엑셀 파일을 읽는 중 문제가 발생했습니다. 이 앱에서 내보낸 파일과 같은 시트 구성인지 확인해주세요.");
+    }
+  };
+  reader.readAsArrayBuffer(file);
+  event.target.value = "";
 }
 
 /* ================= 네비 ================= */
